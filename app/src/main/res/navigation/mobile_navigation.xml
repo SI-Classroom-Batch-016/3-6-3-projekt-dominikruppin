@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.plexviewer.ui.home.HomeFragment"
+        android:label="@string/menu_home"
+        tools:layout="@layout/fragment_home" />
+
+    <fragment
+        android:id="@+id/nav_movie"
+        android:name="com.plexviewer.ui.movie.MovieFragment"
+        android:label="@string/menu_movies"
+        tools:layout="@layout/fragment_movie" />
+
+    <fragment
+        android:id="@+id/nav_tvshow"
+        android:name="com.plexviewer.ui.tvshow.TVShowFragment"
+        android:label="@string/menu_tvshows"
+        tools:layout="@layout/fragment_tvshow" />
+</navigation>
