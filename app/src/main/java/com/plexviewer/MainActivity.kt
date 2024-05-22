@@ -5,8 +5,12 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.navigation.NavigationView
@@ -17,13 +21,16 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
 import com.plexviewer.databinding.ActivityMainBinding
+import com.plexviewer.databinding.NavHeaderMainBinding
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var headerBinding: NavHeaderMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Ruft die SharedPreferences (gespeicherten Werte) für Plex ab
@@ -36,7 +43,11 @@ class MainActivity : AppCompatActivity() {
         val serverAdress = sharedPreferences.getString("server_address", null)
         // Lädt den gespeicherten Port
         val serverPort = sharedPreferences.getString("server_port", null)
-        Log.d("Server", "Token: $plexToken\nProtokoll: $serverProtocol\nAdresse: $serverAdress\nPort: $serverPort")
+        // Lädt den usernamen
+        val userName = sharedPreferences.getString("username", null)
+        // Lädt den Avatar
+        val avatar = sharedPreferences.getString("thumb", null)
+        Log.d("Server", "Token: $plexToken\nProtokoll: $serverProtocol\nAdresse: $serverAdress\nPort: $serverPort\nUsername: $userName\nThumb: $avatar")
         super.onCreate(savedInstanceState)
         // Prüfen ob der PlexToken und Serverauswal existiert
         if (plexToken == null || serverProtocol == null || serverAdress == null || serverPort == null) {
@@ -51,6 +62,19 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         // Content anzeigen
         setContentView(binding.root)
+
+        // Binding für den Header des Navigationsmenüs
+        headerBinding = NavHeaderMainBinding.bind(binding.navView.getHeaderView(0))
+        // Avatar setzen
+        if (avatar != null) {
+            Glide.with(this)
+                .load(avatar)
+                .into(headerBinding.avatar)
+        }
+        // Username setzen
+        headerBinding.username.text = userName
+        // Ausgewählter Server setzen
+        headerBinding.server.text = "$serverProtocol://$serverAdress:$serverPort"
         // Toolbar als Actionbar initialisieren
         setSupportActionBar(binding.appBarMain.toolbar)
 
@@ -86,12 +110,6 @@ class MainActivity : AppCompatActivity() {
     // Dreipunkte Menü, Clicklistener
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            // Einstellungen ausgewählt
-            R.id.action_settings -> {
-                // Aktuell nur ein Debughinweis
-                Toast.makeText(this, "Einstellungen ausgewählt", Toast.LENGTH_SHORT).show()
-                true
-            }
             // Ausloggen ausgewählt
             R.id.action_logout -> {
                 // Den Editor für die sharedPreferences laden

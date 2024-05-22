@@ -89,6 +89,8 @@ class PlexApiManager(private val context: Context) {
         val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         editor.putString("plex_token", token)
+        editor.putString("thumb", userThumb)
+        editor.putString("username", username)
         editor.apply()
         fetchAvailableServers(token)
     }

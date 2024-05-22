@@ -55,4 +55,6 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("org.simpleframework:simple-xml:2.7.1'")
     implementation("com.squareup.retrofit2:converter-simplexml:2.9.0")
+    implementation("com.github.bumptech.glide:glide:4.13.2")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.13.2")
 }
