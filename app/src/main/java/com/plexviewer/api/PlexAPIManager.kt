@@ -5,6 +5,8 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,14 +21,20 @@ import retrofit2.http.FormUrlEncoded
 import retrofit2.http.POST
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
+import retrofit2.http.GET
+import retrofit2.http.Header
 import java.net.HttpURLConnection
 import java.net.URL
 
-class PlexApiManager(private val context: Context) {
+class PlexApiManager(private val context: Context): ViewModel() {
 
     private val _servers = MutableLiveData<List<PlexServer>?>()
     val servers: LiveData<List<PlexServer>?>
         get() = _servers
+
+    private val _libraries = MutableLiveData<List<Directory>>()
+    val libraries: LiveData<List<Directory>>
+        get() = _libraries
 
     private val TAG = "PlexApiManager"
     private val retrofit: Retrofit = Retrofit.Builder()
@@ -53,7 +61,10 @@ class PlexApiManager(private val context: Context) {
             password
         )
         call.enqueue(object : Callback<PlexUserResponse> {
-            override fun onResponse(call: Call<PlexUserResponse>, response: Response<PlexUserResponse>) {
+            override fun onResponse(
+                call: Call<PlexUserResponse>,
+                response: Response<PlexUserResponse>
+            ) {
                 Log.d(TAG, "Antwort vom Server: ${response.raw()}")
                 if (response.isSuccessful) {
                     response.body()?.let {
@@ -80,6 +91,37 @@ class PlexApiManager(private val context: Context) {
                 onFailure("Netzwerkfehler: ${t.message}")
             }
         })
+    }
+
+        fun getLibraries() {
+            val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString("plex_token", null)
+
+            if (token != null) {
+                val call = service.getLibraries(token)
+                call.enqueue(object : Callback<LibraryResponse> {
+                    override fun onResponse(call: Call<LibraryResponse>, response: Response<LibraryResponse>) {
+                        if (response.isSuccessful) {
+                            response.body()?.let {
+                                Log.d(TAG, it.mediaContainer.directories.toString())
+                                _libraries.value = it.mediaContainer.directories
+                            }
+                        } else {
+                            Log.e(TAG, "Fehler beim Abrufen der Bibliotheken: ${response.errorBody()?.string()}")
+                        }
+                    }
+
+                    override fun onFailure(call: Call<LibraryResponse>, t: Throwable) {
+                        Log.e(TAG, "Netzwerkfehler: ${t.message}", t)
+                    }
+                })
+            } else {
+                Log.e(TAG, "Kein Token vorhanden")
+            }
+
+
+
+
     }
 
     private fun saveData(token: String, username: String, userThumb: String) {
@@ -142,7 +184,14 @@ fun getAvailableServers(authToken: String): List<PlexServer> {
                     }
 
                     connections.forEach { (protocol, addressPort) ->
-                        serverList.add(PlexServer(deviceName, protocol, addressPort.first, addressPort.second))
+                        serverList.add(
+                            PlexServer(
+                                deviceName,
+                                protocol,
+                                addressPort.first,
+                                addressPort.second
+                            )
+                        )
                     }
                 }
             }
@@ -156,6 +205,17 @@ fun getAvailableServers(authToken: String): List<PlexServer> {
     }
 }
 
+class PlexApiManagerFactory(private val context: Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(PlexApiManager::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return PlexApiManager(context) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+
 interface PlexApi {
     @FormUrlEncoded
     @POST("users/sign_in.json")
@@ -166,6 +226,9 @@ interface PlexApi {
         @Field("user[login]") username: String,
         @Field("user[password]") password: String
     ): Call<PlexUserResponse>
+
+    @GET("library/sections")
+    fun getLibraries(@Header("X-Plex-Token") token: String): Call<LibraryResponse>
 }
 
 

@@ -77,12 +77,6 @@ class MainActivity : AppCompatActivity() {
         headerBinding.server.text = "$serverProtocol://$serverAdress:$serverPort"
         // Toolbar als Actionbar initialisieren
         setSupportActionBar(binding.appBarMain.toolbar)
-
-        // Floating Action Button
-        binding.appBarMain.fab.setOnClickListener { view ->
-            // Sortierung einbauen
-        }
-
         // Hamburgermenü inflaten
         val drawerLayout: DrawerLayout = binding.drawerLayout
         // Navigation binden
