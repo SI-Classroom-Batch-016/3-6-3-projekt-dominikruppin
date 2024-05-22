@@ -2,6 +2,7 @@ package com.plexviewer.ui.home
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +10,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.plexviewer.MainActivity
+import com.plexviewer.adapter.LibraryAdapter
 import com.plexviewer.api.PlexApiManager
 import com.plexviewer.databinding.FragmentHomeBinding
 
@@ -35,7 +37,12 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.textHome.text = "HIER FINDET EIN TEST STATT"
         plexApiManager.getLibraries()
+        plexApiManager.libraries.observe(viewLifecycleOwner) {
+            val recyclerView = binding.libraryRecyclerView
+            recyclerView.adapter = LibraryAdapter(it)
+        }
+
+
     }
 }

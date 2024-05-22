@@ -159,10 +159,7 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
                         }
 
                         directories.add(
-                            Directory(
-                                allowSync, art, filters, refreshing, thumb, key, type, title,
-                                agent, scanner, language, uuid, updatedAt, createdAt, locations
-                            )
+                            Directory(key, type, title)
                         )
                     }
                     eventType = xmlParser.next()

@@ -1,5 +1,4 @@
 import org.simpleframework.xml.Attribute
-import org.simpleframework.xml.Element
 import org.simpleframework.xml.ElementList
 import org.simpleframework.xml.Root
 
@@ -11,7 +10,7 @@ data class LibraryResponse(
 
 @Root(name = "Directory", strict = false)
 data class Directory(
-    @field:Attribute(name = "allowSync")
+    /**@field:Attribute(name = "allowSync")
     var allowSync: Int = 0,
     @field:Attribute(name = "art")
     var art: String = "",
@@ -20,14 +19,14 @@ data class Directory(
     @field:Attribute(name = "refreshing")
     var refreshing: Int = 0,
     @field:Attribute(name = "thumb")
-    var thumb: String = "",
+    var thumb: String = "",*/
     @field:Attribute(name = "key")
     var key: String = "",
     @field:Attribute(name = "type")
     var type: String = "",
     @field:Attribute(name = "title")
     var title: String = "",
-    @field:Attribute(name = "agent")
+    /**@field:Attribute(name = "agent")
     var agent: String = "",
     @field:Attribute(name = "scanner")
     var scanner: String = "",
@@ -40,7 +39,7 @@ data class Directory(
     @field:Attribute(name = "createdAt")
     var createdAt: Long = 0,
     @field:ElementList(entry = "Location", inline = true)
-    var locations: List<Location>? = null
+    var locations: List<Location>? = null*/
 )
 
 @Root(name = "Location", strict = false)
