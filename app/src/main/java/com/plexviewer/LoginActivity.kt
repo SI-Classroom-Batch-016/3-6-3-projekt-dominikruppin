@@ -24,7 +24,7 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        plexApiManager = PlexApiManager(this)
+        plexApiManager = PlexApiManager.getInstance(this)
 
         val etUsername: EditText = binding.etUsername
         val etPassword: EditText = binding.etPassword

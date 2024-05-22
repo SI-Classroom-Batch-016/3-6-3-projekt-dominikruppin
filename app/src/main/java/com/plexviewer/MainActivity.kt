@@ -22,6 +22,7 @@ import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
+import com.plexviewer.api.PlexApiManager
 import com.plexviewer.databinding.ActivityMainBinding
 import com.plexviewer.databinding.NavHeaderMainBinding
 
@@ -31,8 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var headerBinding: NavHeaderMainBinding
+    lateinit var plexApiManager: PlexApiManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        plexApiManager = PlexApiManager.getInstance(this)
         // Ruft die SharedPreferences (gespeicherten Werte) für Plex ab
         sharedPreferences = getSharedPreferences("Plex", Context.MODE_PRIVATE)
         // Lädt den gespeicherten Plextoken
@@ -62,7 +65,6 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         // Content anzeigen
         setContentView(binding.root)
-
         // Binding für den Header des Navigationsmenüs
         headerBinding = NavHeaderMainBinding.bind(binding.navView.getHeaderView(0))
         // Avatar setzen

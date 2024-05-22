@@ -1,5 +1,8 @@
 package com.plexviewer.api
 
+import Directory
+import LibraryResponse
+import Location
 import PlexServer
 import android.content.Context
 import android.util.Log
@@ -26,8 +29,21 @@ import retrofit2.http.Header
 import java.net.HttpURLConnection
 import java.net.URL
 
-class PlexApiManager(private val context: Context): ViewModel() {
-
+class PlexApiManager private constructor(context: Context) : ViewModel() {
+    private val TAG = "PlexApiManager"
+    private val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
+    // Lädt den gespeicherten Plextoken
+    val plexToken = sharedPreferences.getString("plex_token", null)
+    // Lädt das gespeicherte Serverprotokoll (http/https)
+    val serverProtocol = sharedPreferences.getString("server_protocol", null)
+    // Lädt die gespeicherte Adresse (URL/IP)
+    val serverAdress = sharedPreferences.getString("server_address", null)
+    // Lädt den gespeicherten Port
+    val serverPort = sharedPreferences.getString("server_port", null)
+    // Lädt den usernamen
+    val userName = sharedPreferences.getString("username", null)
+    // Lädt den Avatar
+    val avatar = sharedPreferences.getString("thumb", null)
     private val _servers = MutableLiveData<List<PlexServer>?>()
     val servers: LiveData<List<PlexServer>?>
         get() = _servers
@@ -36,12 +52,12 @@ class PlexApiManager(private val context: Context): ViewModel() {
     val libraries: LiveData<List<Directory>>
         get() = _libraries
 
-    private val TAG = "PlexApiManager"
-    private val retrofit: Retrofit = Retrofit.Builder()
+    // Static Retrofit instance for fixed URL calls
+    private val fixedRetrofit: Retrofit = Retrofit.Builder()
         .baseUrl("https://plex.tv/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
-    private val service: PlexApi = retrofit.create(PlexApi::class.java)
+    private val fixedService: PlexApi = fixedRetrofit.create(PlexApi::class.java)
 
     fun login(
         username: String,
@@ -53,7 +69,7 @@ class PlexApiManager(private val context: Context): ViewModel() {
         val product = "Plex Viewer for Android"
         val version = "1.0.0"
 
-        val call = service.login(
+        val call = fixedService.login(
             productId,
             product,
             version,
@@ -93,42 +109,78 @@ class PlexApiManager(private val context: Context): ViewModel() {
         })
     }
 
-        fun getLibraries() {
-            val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
-            val token = sharedPreferences.getString("plex_token", null)
+    fun getLibraries() {
+        if (plexToken == null) {
+            Log.e(TAG, "Kein Token vorhanden")
+            return
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            Log.d(TAG, "Bibliotheken werden abgerufen...")
+            val url =
+                URL("$serverProtocol://$serverAdress:$serverPort/library/sections?X-Plex-Token=$plexToken")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
 
-            if (token != null) {
-                val call = service.getLibraries(token)
-                call.enqueue(object : Callback<LibraryResponse> {
-                    override fun onResponse(call: Call<LibraryResponse>, response: Response<LibraryResponse>) {
-                        if (response.isSuccessful) {
-                            response.body()?.let {
-                                Log.d(TAG, it.mediaContainer.directories.toString())
-                                _libraries.value = it.mediaContainer.directories
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                Log.d(TAG, "Antwort wurde empfangen")
+                val inputStream = connection.inputStream
+                val xmlParser = XmlPullParserFactory.newInstance().newPullParser()
+                xmlParser.setInput(inputStream, null)
+
+                var eventType = xmlParser.eventType
+                val directories = mutableListOf<Directory>()
+
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    if (eventType == XmlPullParser.START_TAG && xmlParser.name == "Directory") {
+                        val allowSync = xmlParser.getAttributeValue(null, "allowSync").toInt()
+                        val art = xmlParser.getAttributeValue(null, "art")
+                        val filters = xmlParser.getAttributeValue(null, "filters").toInt()
+                        val refreshing = xmlParser.getAttributeValue(null, "refreshing").toInt()
+                        val thumb = xmlParser.getAttributeValue(null, "thumb")
+                        val key = xmlParser.getAttributeValue(null, "key")
+                        val type = xmlParser.getAttributeValue(null, "type")
+                        val title = xmlParser.getAttributeValue(null, "title")
+                        val agent = xmlParser.getAttributeValue(null, "agent")
+                        val scanner = xmlParser.getAttributeValue(null, "scanner")
+                        val language = xmlParser.getAttributeValue(null, "language")
+                        val uuid = xmlParser.getAttributeValue(null, "uuid")
+                        val updatedAt = xmlParser.getAttributeValue(null, "updatedAt").toLong()
+                        val createdAt = xmlParser.getAttributeValue(null, "createdAt").toLong()
+                        val locations = mutableListOf<Location>()
+
+                        while (eventType != XmlPullParser.END_TAG || xmlParser.name != "Directory") {
+                            if (eventType == XmlPullParser.START_TAG && xmlParser.name == "Location") {
+                                val id = xmlParser.getAttributeValue(null, "id").toInt()
+                                val path = xmlParser.getAttributeValue(null, "path")
+                                locations.add(Location(id, path))
                             }
-                        } else {
-                            Log.e(TAG, "Fehler beim Abrufen der Bibliotheken: ${response.errorBody()?.string()}")
+                            eventType = xmlParser.next()
                         }
-                    }
 
-                    override fun onFailure(call: Call<LibraryResponse>, t: Throwable) {
-                        Log.e(TAG, "Netzwerkfehler: ${t.message}", t)
+                        directories.add(
+                            Directory(
+                                allowSync, art, filters, refreshing, thumb, key, type, title,
+                                agent, scanner, language, uuid, updatedAt, createdAt, locations
+                            )
+                        )
                     }
-                })
+                    eventType = xmlParser.next()
+                }
+                Log.d(TAG, "Bibliotheken: $directories")
+                _libraries.postValue(directories)
             } else {
-                Log.e(TAG, "Kein Token vorhanden")
+                Log.e(TAG, "Fehler beim Abrufen der Bibliotheken: ${responseCode}")
             }
-
-
-
-
+        }
     }
+
+
 
     private fun saveData(token: String, username: String, userThumb: String) {
         Log.d(TAG, "Username: $username")
         Log.d(TAG, "Thumblink: $userThumb")
         Log.d(TAG, "Token wird gespeichert: $token")
-        val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         editor.putString("plex_token", token)
         editor.putString("thumb", userThumb)
@@ -142,7 +194,20 @@ class PlexApiManager(private val context: Context): ViewModel() {
             _servers.value = withContext(Dispatchers.IO) {
                 getAvailableServers(authToken)
             }
-            Log.d("API", "Serverliste: ${_servers.value}")
+            Log.d(TAG, "Serverliste: ${_servers.value}")
+        }
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: PlexApiManager? = null
+
+        fun getInstance(context: Context): PlexApiManager {
+            return INSTANCE ?: synchronized(this) {
+                val instance = PlexApiManager(context)
+                INSTANCE = instance
+                instance
+            }
         }
     }
 }
@@ -205,17 +270,6 @@ fun getAvailableServers(authToken: String): List<PlexServer> {
     }
 }
 
-class PlexApiManagerFactory(private val context: Context) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(PlexApiManager::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return PlexApiManager(context) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}
-
-
 interface PlexApi {
     @FormUrlEncoded
     @POST("users/sign_in.json")
@@ -230,5 +284,3 @@ interface PlexApi {
     @GET("library/sections")
     fun getLibraries(@Header("X-Plex-Token") token: String): Call<LibraryResponse>
 }
-
-

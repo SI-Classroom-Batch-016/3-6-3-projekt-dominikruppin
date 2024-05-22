@@ -1,22 +1,27 @@
 package com.plexviewer.ui.home
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.activityViewModels
+import com.plexviewer.MainActivity
 import com.plexviewer.api.PlexApiManager
 import com.plexviewer.databinding.FragmentHomeBinding
-import com.plexviewer.api.PlexApiManagerFactory
 
 class HomeFragment : Fragment() {
-
+    private lateinit var mainActivity: MainActivity
+    private val viewModel: PlexApiManager by activityViewModels()
     private lateinit var binding: FragmentHomeBinding
-    private val viewModel: PlexApiManager by viewModels {
-        PlexApiManagerFactory(requireContext().applicationContext)
+    private lateinit var plexApiManager: PlexApiManager
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        mainActivity = context as MainActivity
+        plexApiManager = mainActivity.plexApiManager
     }
 
     override fun onCreateView(
@@ -30,9 +35,7 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel.getLibraries()
-        viewModel.libraries.observe(viewLifecycleOwner) {
-            binding.textHome.text = it.toString()
-        }
+        binding.textHome.text = "HIER FINDET EIN TEST STATT"
+        plexApiManager.getLibraries()
     }
 }
