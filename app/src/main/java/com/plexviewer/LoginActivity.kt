@@ -7,10 +7,15 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.MutableLiveData
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.plexviewer.adapter.ServerAdapter
 import com.plexviewer.api.PlexApiManager
 import com.plexviewer.databinding.ActivityLoginBinding
@@ -20,7 +25,6 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private val TAG = "LoginActivity"
     private lateinit var plexApiManager: PlexApiManager
-    //private lateinit var servers: List<PlexServer>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +47,6 @@ class LoginActivity : AppCompatActivity() {
 
             if (username.isNotEmpty() && password.isNotEmpty()) {
                 plexApiManager.login(username, password, onSuccess = { authToken ->
-                    //showServerListDialog(servers)
                 }, onFailure = { errorMessage ->
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
                 })
@@ -57,31 +60,36 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
-
-
-
-    } // Ende der Hauptfunktion
-
-    private fun showServerListDialog(servers: List<PlexServer>) {
-        val serverListDialog = AlertDialog.Builder(this)
-            .setTitle("Wählen Sie einen Plex-Server")
-            .setView(R.layout.server_list_dialog)
-            .setPositiveButton("Auswählen") { _, _ ->
-                // Logik zum Speichern des ausgewählten Servers in SharedPreferences
+        plexApiManager.servers.observe(this) { servers ->
+            if (servers != null) {
+                showServerListDialog(servers)
             }
-            .setNegativeButton("Abbrechen", null)
-            .create()
+        }
 
-        val binding = ServerListDialogBinding.inflate(layoutInflater)
-        val adapter = ServerAdapter(this, servers)
-        binding.serverListRecyclerView.adapter = adapter
-
-        serverListDialog.show()
     }
+
 
     private fun changeActivity() {
         val intent = Intent(this@LoginActivity, MainActivity::class.java)
         startActivity(intent)
         finish()
+    }
+
+    private fun showServerListDialog(servers: List<PlexServer>) {
+        val binding = ServerListDialogBinding.inflate(layoutInflater)
+        val recyclerView = binding.serverListRecyclerView
+        val parent = recyclerView.parent as ViewGroup
+        parent.removeView(recyclerView)
+        recyclerView.adapter = ServerAdapter(this, servers)
+
+        val serverListDialog = AlertDialog.Builder(this)
+            .setTitle("Wählen Sie einen Plex-Server")
+            .setView(recyclerView)
+            .setPositiveButton("Auswählen") { _, _ ->
+                // Logik zum Speichern des ausgewählten Servers in SharedPreferences
+            }
+            .create()
+
+        serverListDialog.show()
     }
 }

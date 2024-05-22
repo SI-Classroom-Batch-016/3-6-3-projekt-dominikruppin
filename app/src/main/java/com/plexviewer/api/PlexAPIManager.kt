@@ -3,10 +3,11 @@ package com.plexviewer.api
 import PlexServer
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
@@ -22,6 +23,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class PlexApiManager(private val context: Context) {
+
+    private val _servers = MutableLiveData<List<PlexServer>?>()
+    val servers: LiveData<List<PlexServer>?>
+        get() = _servers
 
     private val TAG = "PlexApiManager"
     private val retrofit: Retrofit = Retrofit.Builder()
@@ -83,10 +88,10 @@ class PlexApiManager(private val context: Context) {
 
     private fun fetchAvailableServers(authToken: String) {
         CoroutineScope(Dispatchers.Main).launch {
-            val serverList = withContext(Dispatchers.IO) {
+            _servers.value = withContext(Dispatchers.IO) {
                 getAvailableServers(authToken)
             }
-            Log.d("API", "Serverliste: $serverList")
+            Log.d("API", "Serverliste: ${_servers.value}")
         }
     }
 }

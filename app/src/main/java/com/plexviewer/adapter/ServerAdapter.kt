@@ -2,6 +2,7 @@ package com.plexviewer.adapter
 
 import PlexServer
 import android.content.Context
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -21,6 +22,7 @@ class ServerAdapter(
 
     override fun onBindViewHolder(holder: ServerViewHolder, position: Int) {
         val item = dataset[position]
+        Log.d("LoginActivity", "Binding item at position $position: $item")
         holder.binding.serverName.text = item.deviceName
         holder.binding.serverProtocol.text = item.connectionProtocol
         holder.binding.serverAddress.text = item.address
