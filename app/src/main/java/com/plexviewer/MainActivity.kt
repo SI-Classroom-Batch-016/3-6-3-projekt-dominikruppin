@@ -2,6 +2,7 @@ package com.plexviewer
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -22,12 +23,18 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val sharedPreferences = getSharedPreferences("Plex", Context.MODE_PRIVATE)
+        // Ruft die SharedPreferences (gespeicherten Werte) für Plex ab
+        sharedPreferences = getSharedPreferences("Plex", Context.MODE_PRIVATE)
+        // Lädt den gespeicherten Plextoken
         val plexToken = sharedPreferences.getString("plex_token", null)
+        // Lädt das gespeicherte Serverprotokoll (http/https)
         val serverProtocol = sharedPreferences.getString("server_protocol", null)
+        // Lädt die gespeicherte Adresse (URL/IP)
         val serverAdress = sharedPreferences.getString("server_address", null)
+        // Lädt den gespeicherten Port
         val serverPort = sharedPreferences.getString("server_port", null)
         Log.d("Server", "Token: $plexToken\nProtokoll: $serverProtocol\nAdresse: $serverAdress\nPort: $serverPort")
         super.onCreate(savedInstanceState)
@@ -36,25 +43,27 @@ class MainActivity : AppCompatActivity() {
             // Wenn irgendwas fehlt, starte Loginprozess
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
-            finish()  // MainActivity schließen, damit der User nicht zurück kann
+            // MainActivity schließen, damit der User nicht zurück kann
+            finish()
             return
         }
         // Binding inflaten
         binding = ActivityMainBinding.inflate(layoutInflater)
         // Content anzeigen
         setContentView(binding.root)
-        // Actionbar initialisieren
+        // Toolbar als Actionbar initialisieren
         setSupportActionBar(binding.appBarMain.toolbar)
-
-
 
         // Floating Action Button
         binding.appBarMain.fab.setOnClickListener { view ->
-            // Fragment für die Settings einbinden
+            // Sortierung einbauen
         }
 
+        // Hamburgermenü inflaten
         val drawerLayout: DrawerLayout = binding.drawerLayout
+        // Navigation binden
         val navView: NavigationView = binding.navView
+        // navController initialisieren
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         // Hamburgermenü Punkte hinzufügen
         appBarConfiguration = AppBarConfiguration(
@@ -62,7 +71,9 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_home, R.id.nav_movie, R.id.nav_tvshow
             ), drawerLayout
         )
+        // Richtet die ActionBar mit dem NavController ein
         setupActionBarWithNavController(navController, appBarConfiguration)
+        // Richtet die NavigationView mit dem NavController ein
         navView.setupWithNavController(navController)
     }
 
@@ -74,16 +85,22 @@ class MainActivity : AppCompatActivity() {
 
     // Dreipunkte Menü, Clicklistener
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        val sharedPreferences = getSharedPreferences("Plex", Context.MODE_PRIVATE)
         return when (item.itemId) {
+            // Einstellungen ausgewählt
             R.id.action_settings -> {
-                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show()
+                // Aktuell nur ein Debughinweis
+                Toast.makeText(this, "Einstellungen ausgewählt", Toast.LENGTH_SHORT).show()
                 true
             }
+            // Ausloggen ausgewählt
             R.id.action_logout -> {
+                // Den Editor für die sharedPreferences laden
                 val editor = sharedPreferences.edit()
+                // Plextoken löschen
                 editor.remove("plex_token")
+                // Serverprotokoll (http/https) löschen
                 editor.remove("server_protocol")
+                // Server Addresse
                 editor.remove("server_address")
                 editor.remove("server_port")
                 editor.apply()

@@ -40,6 +40,7 @@ class LoginActivity : AppCompatActivity() {
 
             if (username.isNotEmpty() && password.isNotEmpty()) {
                 plexApiManager.login(username, password, onSuccess = { authToken ->
+                    Toast.makeText(this, "Login erfolgreich.", Toast.LENGTH_SHORT).show()
                 }, onFailure = { errorMessage ->
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
                 })
