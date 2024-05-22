@@ -39,7 +39,7 @@ class LoginActivity : AppCompatActivity() {
             val password = etPassword.text.toString()
 
             if (username.isNotEmpty() && password.isNotEmpty()) {
-                plexApiManager.login(username, password, onSuccess = { authToken ->
+                plexApiManager.login(username, password, onSuccess = { _, _, _ ->
                     Toast.makeText(this, "Login erfolgreich.", Toast.LENGTH_SHORT).show()
                 }, onFailure = { errorMessage ->
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()

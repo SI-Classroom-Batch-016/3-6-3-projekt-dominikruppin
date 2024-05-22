@@ -38,7 +38,7 @@ class PlexApiManager(private val context: Context) {
     fun login(
         username: String,
         password: String,
-        onSuccess: (String) -> Unit,
+        onSuccess: (String, String, String) -> Unit,
         onFailure: (String) -> Unit
     ) {
         val productId = "Plex Viewer for Android"
@@ -52,14 +52,19 @@ class PlexApiManager(private val context: Context) {
             username,
             password
         )
-        call.enqueue(object : Callback<PlexToken> {
-            override fun onResponse(call: Call<PlexToken>, response: Response<PlexToken>) {
+        call.enqueue(object : Callback<PlexUserResponse> {
+            override fun onResponse(call: Call<PlexUserResponse>, response: Response<PlexUserResponse>) {
                 Log.d(TAG, "Antwort vom Server: ${response.raw()}")
                 if (response.isSuccessful) {
                     response.body()?.let {
                         val authToken = it.user.authToken
-                        saveToken(authToken)
-                        onSuccess(authToken)
+                        Log.d(TAG, "Token: $authToken")
+                        val userName = it.user.username
+                        Log.d(TAG, "Username: $userName")
+                        val userThumb = it.user.thumb
+                        Log.d(TAG, "Thumb: $userThumb")
+                        saveData(authToken, userName, userThumb)
+                        onSuccess(authToken, userName, userThumb)
                     } ?: run {
                         Log.e(TAG, "Leere Antwort erhalten")
                         onFailure("Login fehlgeschlagen")
@@ -70,14 +75,16 @@ class PlexApiManager(private val context: Context) {
                 }
             }
 
-            override fun onFailure(call: Call<PlexToken>, t: Throwable) {
+            override fun onFailure(call: Call<PlexUserResponse>, t: Throwable) {
                 Log.e(TAG, "Netzwerkfehler: ${t.message}", t)
                 onFailure("Netzwerkfehler: ${t.message}")
             }
         })
     }
 
-    private fun saveToken(token: String) {
+    private fun saveData(token: String, username: String, userThumb: String) {
+        Log.d(TAG, "Username: $username")
+        Log.d(TAG, "Thumblink: $userThumb")
         Log.d(TAG, "Token wird gespeichert: $token")
         val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
@@ -156,7 +163,7 @@ interface PlexApi {
         @Field("X-Plex-Version") version: String,
         @Field("user[login]") username: String,
         @Field("user[password]") password: String
-    ): Call<PlexToken>
+    ): Call<PlexUserResponse>
 }
 
 
