@@ -2,10 +2,13 @@ package com.plexviewer.adapter
 
 import PlexServer
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.plexviewer.LoginActivity
+import com.plexviewer.MainActivity
 import com.plexviewer.databinding.ServerItemBinding
 
 class ServerAdapter(
@@ -27,6 +30,18 @@ class ServerAdapter(
         holder.binding.serverProtocol.text = item.connectionProtocol
         holder.binding.serverAddress.text = item.address
         holder.binding.serverPort.text = item.port.toString()
+
+        holder.binding.root.setOnClickListener {
+            val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
+            val editor = sharedPreferences.edit()
+            editor.putString("server_protocol", item.connectionProtocol)
+            editor.putString("server_address", item.address)
+            editor.putString("server_port", item.port.toString())
+            editor.apply()
+            Log.d("Server", "Ausgewählt wurde: $item")
+            val intent = Intent(context, MainActivity::class.java)
+            context.startActivity(intent)
+        }
     }
 
     override fun getItemCount(): Int {

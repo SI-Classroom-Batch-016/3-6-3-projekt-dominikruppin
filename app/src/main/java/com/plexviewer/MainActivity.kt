@@ -3,6 +3,7 @@ package com.plexviewer
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
@@ -25,10 +26,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val sharedPreferences = getSharedPreferences("Plex", Context.MODE_PRIVATE)
         val plexToken = sharedPreferences.getString("plex_token", null)
+        val serverProtocol = sharedPreferences.getString("server_protocol", null)
+        val serverAdress = sharedPreferences.getString("server_address", null)
+        val serverPort = sharedPreferences.getString("server_port", null)
+        Log.d("Server", "Token: $plexToken\nProtokoll: $serverProtocol\nAdresse: $serverAdress\nPort: $serverPort")
         super.onCreate(savedInstanceState)
-        // Prüfen ob der PlexToken existiert
-        if (plexToken == null) {
-            // If no token, start LoginActivity
+        // Prüfen ob der PlexToken und Serverauswal existiert
+        if (plexToken == null || serverProtocol == null || serverAdress == null || serverPort == null) {
+            // Wenn irgendwas fehlt, starte Loginprozess
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
             finish()  // MainActivity schließen, damit der User nicht zurück kann
@@ -70,7 +75,6 @@ class MainActivity : AppCompatActivity() {
     // Dreipunkte Menü, Clicklistener
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val sharedPreferences = getSharedPreferences("Plex", Context.MODE_PRIVATE)
-        val plexToken = sharedPreferences.getString("plex_token", null)
         return when (item.itemId) {
             R.id.action_settings -> {
                 Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show()
@@ -79,6 +83,9 @@ class MainActivity : AppCompatActivity() {
             R.id.action_logout -> {
                 val editor = sharedPreferences.edit()
                 editor.remove("plex_token")
+                editor.remove("server_protocol")
+                editor.remove("server_address")
+                editor.remove("server_port")
                 editor.apply()
                 Toast.makeText(this, "Erfolgreich ausgeloggt.", Toast.LENGTH_SHORT).show()
                 val intent = Intent(this, LoginActivity::class.java)
