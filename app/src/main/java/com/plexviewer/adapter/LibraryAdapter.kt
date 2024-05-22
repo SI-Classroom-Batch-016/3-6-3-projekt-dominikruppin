@@ -20,9 +20,9 @@ class LibraryAdapter(
 
     override fun onBindViewHolder(holder: LibraryViewHolder, position: Int) {
         val item = dataset[position]
-        holder.binding.libraryKey.text = item.key
+        holder.binding.libraryKey.text = "Key: ${item.key}"
         holder.binding.libraryName.text = item.title
-        holder.binding.libraryType.text = item.type
+        holder.binding.libraryType.text = "Typ: ${item.type}"
     }
 
     override fun getItemCount(): Int {

@@ -12,9 +12,6 @@ import com.plexviewer.databinding.FragmentMovieBinding
 class MovieFragment : Fragment() {
 
     private var _binding: FragmentMovieBinding? = null
-
-    // This property is only valid between onCreateView and
-    // onDestroyView.
     private val binding get() = _binding!!
 
     override fun onCreateView(
