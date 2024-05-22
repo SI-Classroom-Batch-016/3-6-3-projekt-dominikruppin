@@ -1,5 +1,7 @@
 package com.plexviewer
 
+import PlexServer
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -9,13 +11,16 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.plexviewer.adapter.ServerAdapter
 import com.plexviewer.api.PlexApiManager
 import com.plexviewer.databinding.ActivityLoginBinding
+import com.plexviewer.databinding.ServerListDialogBinding
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private val TAG = "LoginActivity"
     private lateinit var plexApiManager: PlexApiManager
+    //private lateinit var servers: List<PlexServer>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +43,7 @@ class LoginActivity : AppCompatActivity() {
 
             if (username.isNotEmpty() && password.isNotEmpty()) {
                 plexApiManager.login(username, password, onSuccess = { authToken ->
-                    getServers()
+                    //showServerListDialog(servers)
                 }, onFailure = { errorMessage ->
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
                 })
@@ -51,23 +56,32 @@ class LoginActivity : AppCompatActivity() {
                     .show()
             }
         }
+
+
+
+
+    } // Ende der Hauptfunktion
+
+    private fun showServerListDialog(servers: List<PlexServer>) {
+        val serverListDialog = AlertDialog.Builder(this)
+            .setTitle("Wählen Sie einen Plex-Server")
+            .setView(R.layout.server_list_dialog)
+            .setPositiveButton("Auswählen") { _, _ ->
+                // Logik zum Speichern des ausgewählten Servers in SharedPreferences
+            }
+            .setNegativeButton("Abbrechen", null)
+            .create()
+
+        val binding = ServerListDialogBinding.inflate(layoutInflater)
+        val adapter = ServerAdapter(this, servers)
+        binding.serverListRecyclerView.adapter = adapter
+
+        serverListDialog.show()
     }
 
     private fun changeActivity() {
         val intent = Intent(this@LoginActivity, MainActivity::class.java)
         startActivity(intent)
         finish()
-    }
-
-    private fun getServers() {
-        plexApiManager.getServers(onSuccess = { devices ->
-            devices.forEach { device ->
-                device.connections?.forEach { connection ->
-                    Log.d(TAG, "Server: ${device.name}, Address: ${connection.address}, Port: ${connection.port}")
-                }
-            }
-        }, onFailure = { errorMessage ->
-            Log.e(TAG, errorMessage)
-        })
     }
 }

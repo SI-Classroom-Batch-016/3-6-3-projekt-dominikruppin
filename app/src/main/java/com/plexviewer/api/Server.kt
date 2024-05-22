@@ -1,7 +1,6 @@
-package com.plexviewer.api
-
-data class Server(
-    val name: String,
+data class PlexServer(
+    val deviceName: String,
+    val connectionProtocol: String,
     val address: String,
     val port: Int
 )
