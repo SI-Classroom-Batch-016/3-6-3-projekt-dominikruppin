@@ -1,29 +1,44 @@
 package com.plexviewer.ui.tvshow
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import com.plexviewer.MainActivity
+import com.plexviewer.adapter.ShowAdapter
+import com.plexviewer.api.PlexApiManager
 import com.plexviewer.databinding.FragmentTvshowBinding
 
-class TVShowFragment : Fragment() {
-
+class TVShowFragment: Fragment() {
+    private lateinit var mainActivity: MainActivity
     private lateinit var binding: FragmentTvshowBinding
+    private lateinit var plexApiManager: PlexApiManager
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        mainActivity = context as MainActivity
+        plexApiManager = mainActivity.plexApiManager
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val TVShowViewModel =
-            ViewModelProvider(this).get(TVShowViewModel::class.java)
-
         binding = FragmentTvshowBinding.inflate(inflater, container, false)
         return binding.root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        plexApiManager.getShows()
+        plexApiManager.show.observe(viewLifecycleOwner) {
+            val recyclerView = binding.showsRecyclerView
+            recyclerView.adapter = ShowAdapter(it)
+        }
 
+
+    }
 }

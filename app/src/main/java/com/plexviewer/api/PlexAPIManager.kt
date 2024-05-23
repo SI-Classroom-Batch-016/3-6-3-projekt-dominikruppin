@@ -68,6 +68,11 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
     val movies: LiveData<List<Movie>>
         get() = _movies
 
+    private val _show = MutableLiveData<List<Show>>()
+
+    val show: LiveData<List<Show>>
+        get() = _show
+
     // Retrofit Instanz zum Zugriff auf plex.tv (userobject)
     private val fixedRetrofit: Retrofit = Retrofit.Builder()
         .baseUrl("https://plex.tv/")
@@ -180,6 +185,67 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
                 _movies.postValue(movies)
             } else {
                 Log.e(TAG, "Fehler beim Abrufen der Filme: ${responseCode}")
+            }
+        }
+    }
+
+    fun getShows() {
+        val showKey = sharedPreferences.getString("show", null)
+        Log.d(TAG, "Showkey: $showKey")
+
+        if (plexToken == null) {
+            Log.e(TAG, "Kein Token vorhanden")
+            return
+        }
+
+        if (showKey == null) {
+            Log.e(TAG, "Kein Show Key in den SharedPreferences gespeichert")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            Log.d(TAG, "Serien werden abgerufen...")
+            val url =
+                URL("$serverProtocol://$serverAdress:$serverPort/library/sections/$showKey/all?X-Plex-Token=$plexToken")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                Log.d(TAG, "Antwort wurde empfangen: $responseCode")
+                val inputStream = connection.inputStream
+                val xmlParser = XmlPullParserFactory.newInstance().newPullParser()
+                xmlParser.setInput(inputStream, null)
+
+                var eventType = xmlParser.eventType
+                val shows = mutableListOf<Show>()
+
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    if (eventType == XmlPullParser.START_TAG && xmlParser.name == "Directory") {
+                        Log.d(TAG, "Video gefunden")
+                        val title = xmlParser.getAttributeValue(null, "title")
+                        val year = xmlParser.getAttributeValue(null, "year")?.toIntOrNull()
+                        val thumb = xmlParser.getAttributeValue(null, "thumb")
+
+                        if (title != null && year != null && thumb != null) {
+                            Log.d(TAG, "Title, Jahr und Thumb vorhanden")
+                            // Bilde die vollständige URL für das Coverbild
+                            val coverImageUrl = "$serverProtocol://$serverAdress:$serverPort$thumb?X-Plex-Token=$plexToken"
+                            shows.add(Show(title, year, coverImageUrl))
+                        }
+
+                        // Stop parsing after collecting 100 movies
+                        if (shows.size >= 100) {
+                            break
+                        }
+                    }
+                    eventType = xmlParser.next()
+                }
+
+                Log.d(TAG, "Serien: $shows")
+                _show.postValue(shows)
+            } else {
+                Log.e(TAG, "Fehler beim Abrufen der Serien: ${responseCode}")
             }
         }
     }
