@@ -5,14 +5,9 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
-import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
-import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.navigation.NavigationView
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -50,7 +45,11 @@ class MainActivity : AppCompatActivity() {
         val userName = sharedPreferences.getString("username", null)
         // Lädt den Avatar
         val avatar = sharedPreferences.getString("thumb", null)
-        Log.d("Server", "Token: $plexToken\nProtokoll: $serverProtocol\nAdresse: $serverAdress\nPort: $serverPort\nUsername: $userName\nThumb: $avatar")
+        // Lädt Movie Keys
+        val movies = sharedPreferences.getString("movie", null)
+        // Lädt TVShow Keys
+        val shows = sharedPreferences.getString("show", null)
+        Log.d("Server", "Token: $plexToken\nProtokoll: $serverProtocol\nAdresse: $serverAdress\nPort: $serverPort\nUsername: $userName\nThumb: $avatar\nMovies: $movies\nShows: $shows")
         super.onCreate(savedInstanceState)
         // Prüfen ob der PlexToken und Serverauswal existiert
         if (plexToken == null || serverProtocol == null || serverAdress == null || serverPort == null) {
@@ -108,16 +107,7 @@ class MainActivity : AppCompatActivity() {
         return when (item.itemId) {
             // Ausloggen ausgewählt
             R.id.action_logout -> {
-                // Den Editor für die sharedPreferences laden
-                val editor = sharedPreferences.edit()
-                // Plextoken löschen
-                editor.remove("plex_token")
-                // Serverprotokoll (http/https) löschen
-                editor.remove("server_protocol")
-                // Server Addresse
-                editor.remove("server_address")
-                editor.remove("server_port")
-                editor.apply()
+                plexApiManager.logout()
                 Toast.makeText(this, "Erfolgreich ausgeloggt.", Toast.LENGTH_SHORT).show()
                 val intent = Intent(this, LoginActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)

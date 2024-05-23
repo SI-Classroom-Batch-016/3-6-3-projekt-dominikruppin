@@ -5,7 +5,9 @@ import LibraryResponse
 import Location
 import PlexServer
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -44,21 +46,36 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
     val userName = sharedPreferences.getString("username", null)
     // Lädt den Avatar
     val avatar = sharedPreferences.getString("thumb", null)
+    // Lädt die Movie Keys
+    val movie = sharedPreferences.getString("movie", null)
+    // Lädt die Serien Keys
+    val shows = sharedPreferences.getString("shows", null)
+    // Editor für sharedPreferences laden
+    val editor = sharedPreferences.edit()
+
+    // Liste der Server
     private val _servers = MutableLiveData<List<PlexServer>?>()
     val servers: LiveData<List<PlexServer>?>
         get() = _servers
 
+    // Liste der Bibliotheken
     private val _libraries = MutableLiveData<List<Directory>>()
     val libraries: LiveData<List<Directory>>
         get() = _libraries
 
-    // Static Retrofit instance for fixed URL calls
+    private val _movies = MutableLiveData<List<Movie>>()
+
+    val movies: LiveData<List<Movie>>
+        get() = _movies
+
+    // Retrofit Instanz zum Zugriff auf plex.tv (userobject)
     private val fixedRetrofit: Retrofit = Retrofit.Builder()
         .baseUrl("https://plex.tv/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
     private val fixedService: PlexApi = fixedRetrofit.create(PlexApi::class.java)
 
+    // Funktion zum holen des Userobjects für Token, Avatar und Username
     fun login(
         username: String,
         password: String,
@@ -109,6 +126,67 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
         })
     }
 
+    fun getMovies() {
+        val movieKey = sharedPreferences.getString("movie", null)
+
+        if (plexToken == null) {
+            Log.e(TAG, "Kein Token vorhanden")
+            return
+        }
+
+        if (movieKey == null) {
+            Log.e(TAG, "Kein Movie Key in den SharedPreferences gespeichert")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            Log.d(TAG, "Filme werden abgerufen...")
+            val url =
+                URL("$serverProtocol://$serverAdress:$serverPort/library/sections/$movieKey/all?X-Plex-Token=$plexToken")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                Log.d(TAG, "Antwort wurde empfangen")
+                val inputStream = connection.inputStream
+                val xmlParser = XmlPullParserFactory.newInstance().newPullParser()
+                xmlParser.setInput(inputStream, null)
+
+                var eventType = xmlParser.eventType
+                val movies = mutableListOf<Movie>()
+
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    if (eventType == XmlPullParser.START_TAG && xmlParser.name == "Video") {
+                        val title = xmlParser.getAttributeValue(null, "title")
+                        val year = xmlParser.getAttributeValue(null, "year")?.toIntOrNull()
+                        val thumb = xmlParser.getAttributeValue(null, "thumb")
+
+                        if (title != null && year != null && thumb != null) {
+                            // Bilde die vollständige URL für das Coverbild
+                            val coverImageUrl = "$serverProtocol://$serverAdress:$serverPort$thumb?X-Plex-Token=$plexToken"
+                            movies.add(Movie(title, year, coverImageUrl))
+                        }
+
+                        // Stop parsing after collecting 100 movies
+                        if (movies.size >= 100) {
+                            break
+                        }
+                    }
+                    eventType = xmlParser.next()
+                }
+
+                Log.d(TAG, "Filme: $movies")
+                _movies.postValue(movies)
+            } else {
+                Log.e(TAG, "Fehler beim Abrufen der Filme: ${responseCode}")
+            }
+        }
+    }
+
+
+
+    // Funktion zum abrufen der Bibliotheken
     fun getLibraries() {
         if (plexToken == null) {
             Log.e(TAG, "Kein Token vorhanden")
@@ -130,6 +208,9 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
 
                 var eventType = xmlParser.eventType
                 val directories = mutableListOf<Directory>()
+
+                var movieKey: String? = null
+                var showKey: String? = null
 
                 while (eventType != XmlPullParser.END_DOCUMENT) {
                     if (eventType == XmlPullParser.START_TAG && xmlParser.name == "Directory") {
@@ -161,10 +242,35 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
                         directories.add(
                             Directory(key, type, title)
                         )
+                        // Prüfen ob die Bibliothek vom Typ Filme ist und noch kein Key gesetzt ist
+                        if (type == "movie" && movieKey == null) {
+                            Log.d(TAG, "Movie gefunden. Key: $key")
+                            // Den Key der Bibliothek als movieKey setzen
+                            movieKey = key
+                        // Prüfen ob die Bibliothek vom Typ Serien ist und noch kein Key gesetzt ist
+                        } else if (type == "show" && showKey == null) {
+                            Log.d(TAG, "Serie gefunden. Key: $key")
+                            // Den Key der Bibliothek als serienKey setzen
+                            showKey = key
+                        }
                     }
                     eventType = xmlParser.next()
                 }
+                // Editor aufrufen
+                val editor = sharedPreferences.edit()
+                // den String in movieKey in den SharedPreferences unter dem Key movie speichern
+                movieKey?.let {
+                    editor.putString("movie", it)
+                }
+                // den String in showKey in den SharedPreferences unter dem Key show speichern
+                showKey?.let {
+                    editor.putString("show", it)
+                }
+                // Änderungen speichern
+                editor.apply()
+
                 Log.d(TAG, "Bibliotheken: $directories")
+                // Bibliotheken in die MutableLiveData pushen
                 _libraries.postValue(directories)
             } else {
                 Log.e(TAG, "Fehler beim Abrufen der Bibliotheken: ${responseCode}")
@@ -173,12 +279,23 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
     }
 
 
+    fun logout() {
+        editor.remove("plex_token")
+        // Serverprotokoll (http/https) löschen
+        editor.remove("server_protocol")
+        // Server Addresse löschen
+        editor.remove("server_address")
+        // Server Port löschen
+        editor.remove("server_port")
+        // Änderungen speichern
+        editor.apply()
+    }
 
+    // Dient zum speichern in den SharedPreferences
     private fun saveData(token: String, username: String, userThumb: String) {
         Log.d(TAG, "Username: $username")
         Log.d(TAG, "Thumblink: $userThumb")
         Log.d(TAG, "Token wird gespeichert: $token")
-        val editor = sharedPreferences.edit()
         editor.putString("plex_token", token)
         editor.putString("thumb", userThumb)
         editor.putString("username", username)
@@ -186,6 +303,7 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
         fetchAvailableServers(token)
     }
 
+    // Dient dem asynchronen abrufen der Server (Coroutine wird genutzt)
     private fun fetchAvailableServers(authToken: String) {
         CoroutineScope(Dispatchers.Main).launch {
             _servers.value = withContext(Dispatchers.IO) {
@@ -195,6 +313,7 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
         }
     }
 
+    // Wir erstellen eine einzelne globale Instanz für alle Activitys
     companion object {
         @Volatile
         private var INSTANCE: PlexApiManager? = null
@@ -209,6 +328,7 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
     }
 }
 
+// Funktion zum abrufen der Server
 fun getAvailableServers(authToken: String): List<PlexServer> {
     val TAG = "API"
     Log.d(TAG, "Server werden abgerufen...")
@@ -267,6 +387,7 @@ fun getAvailableServers(authToken: String): List<PlexServer> {
     }
 }
 
+// API Endpunkte und Header
 interface PlexApi {
     @FormUrlEncoded
     @POST("users/sign_in.json")

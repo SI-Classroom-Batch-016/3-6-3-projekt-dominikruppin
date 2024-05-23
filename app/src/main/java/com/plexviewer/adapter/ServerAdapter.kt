@@ -25,11 +25,11 @@ class ServerAdapter(
 
     override fun onBindViewHolder(holder: ServerViewHolder, position: Int) {
         val item = dataset[position]
-        Log.d("LoginActivity", "Binding item at position $position: $item")
+        Log.d("Serveradapter", "Binding item at position $position: $item")
         holder.binding.serverName.text = item.deviceName
-        holder.binding.serverProtocol.text = item.connectionProtocol
+        holder.binding.serverProtocol.text = "Protokoll: ${item.connectionProtocol}"
         holder.binding.serverAddress.text = item.address
-        holder.binding.serverPort.text = item.port.toString()
+        holder.binding.serverPort.text = "Port: ${item.port.toString()}"
 
         holder.binding.root.setOnClickListener {
             val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
@@ -38,7 +38,7 @@ class ServerAdapter(
             editor.putString("server_address", item.address)
             editor.putString("server_port", item.port.toString())
             editor.apply()
-            Log.d("Server", "Ausgewählt wurde: $item")
+            Log.d("PlexAPIManager", "Ausgewählt wurde: $item")
             val intent = Intent(context, MainActivity::class.java)
             context.startActivity(intent)
         }

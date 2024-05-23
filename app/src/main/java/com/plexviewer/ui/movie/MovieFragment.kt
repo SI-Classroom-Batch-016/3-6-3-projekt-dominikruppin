@@ -1,39 +1,44 @@
 package com.plexviewer.ui.movie
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import com.plexviewer.MainActivity
+import com.plexviewer.adapter.MovieAdapter
+import com.plexviewer.api.PlexApiManager
 import com.plexviewer.databinding.FragmentMovieBinding
 
-class MovieFragment : Fragment() {
+class MovieFragment: Fragment() {
+    private lateinit var mainActivity: MainActivity
+    private lateinit var binding: FragmentMovieBinding
+    private lateinit var plexApiManager: PlexApiManager
 
-    private var _binding: FragmentMovieBinding? = null
-    private val binding get() = _binding!!
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        mainActivity = context as MainActivity
+        plexApiManager = mainActivity.plexApiManager
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val movieViewModel =
-            ViewModelProvider(this).get(MovieViewModel::class.java)
-
-        _binding = FragmentMovieBinding.inflate(inflater, container, false)
-        val root: View = binding.root
-
-        val textView: TextView = binding.textGallery
-        movieViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
-        }
-        return root
+        binding = FragmentMovieBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        plexApiManager.getMovies()
+        plexApiManager.movies.observe(viewLifecycleOwner) {
+            val recyclerView = binding.moviesRecyclerView
+            recyclerView.adapter = MovieAdapter(it)
+        }
+
+
     }
 }
