@@ -7,10 +7,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.plexviewer.LoginActivity
 import com.plexviewer.MainActivity
 import com.plexviewer.databinding.ServerItemBinding
 
+// Adapter zum setzen der Server
 class ServerAdapter(
     private val context: Context,
     private val dataset: List<PlexServer>
@@ -31,6 +31,7 @@ class ServerAdapter(
         holder.binding.serverAddress.text = item.address
         holder.binding.serverPort.text = "Port: ${item.port.toString()}"
 
+        // Auswählen eines Servers, Daten werden dann gespeichert
         holder.binding.root.setOnClickListener {
             val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
@@ -39,6 +40,7 @@ class ServerAdapter(
             editor.putString("server_port", item.port.toString())
             editor.apply()
             Log.d("PlexAPIManager", "Ausgewählt wurde: $item")
+            // Wir wechseln in die MainActivity
             val intent = Intent(context, MainActivity::class.java)
             context.startActivity(intent)
         }

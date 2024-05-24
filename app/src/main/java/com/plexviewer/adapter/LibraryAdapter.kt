@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.plexviewer.databinding.LibraryItemBinding
 
+// Adapter zum setzen der Bibliotheken
 class LibraryAdapter(
     private val dataset: List<Directory>
 ): RecyclerView.Adapter<LibraryAdapter.LibraryViewHolder>() {

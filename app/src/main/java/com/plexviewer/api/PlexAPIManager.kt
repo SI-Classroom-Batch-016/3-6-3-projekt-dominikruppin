@@ -5,13 +5,10 @@ import LibraryResponse
 import Location
 import PlexServer
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
-import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,7 +28,9 @@ import retrofit2.http.Header
 import java.net.HttpURLConnection
 import java.net.URL
 
+// ViewModel zum steuern des Logins und der einzelnen Fragmente
 class PlexApiManager private constructor(context: Context) : ViewModel() {
+    // Laden aller gespeicherten Werte, ansonsten mit null initialisieren
     private val TAG = "PlexApiManager"
     private val sharedPreferences = context.getSharedPreferences("Plex", Context.MODE_PRIVATE)
     // Lädt den gespeicherten Plextoken
@@ -65,9 +64,11 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
 
     private val _movies = MutableLiveData<List<Movie>>()
 
+    // Liste der Filme
     val movies: LiveData<List<Movie>>
         get() = _movies
 
+    // Liste der Serien
     private val _show = MutableLiveData<List<Show>>()
 
     val show: LiveData<List<Show>>
@@ -131,6 +132,7 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
         })
     }
 
+    // Funktion zum abrufen der Filme
     fun getMovies() {
         val movieKey = sharedPreferences.getString("movie", null)
 
@@ -173,7 +175,7 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
                             movies.add(Movie(title, year, coverImageUrl))
                         }
 
-                        // Stop parsing after collecting 100 movies
+                        // Bei 100 Einträgen die Schleife abbrechen
                         if (movies.size >= 100) {
                             break
                         }
@@ -189,6 +191,7 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
         }
     }
 
+    // Abrufen der Serien
     fun getShows() {
         val showKey = sharedPreferences.getString("show", null)
         Log.d(TAG, "Showkey: $showKey")
@@ -203,13 +206,17 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
             return
         }
 
+        // Abfrage wird asynchron ausgeführt
         CoroutineScope(Dispatchers.IO).launch {
             Log.d(TAG, "Serien werden abgerufen...")
+            // API URL
             val url =
                 URL("$serverProtocol://$serverAdress:$serverPort/library/sections/$showKey/all?X-Plex-Token=$plexToken")
+            // Verbindung initialisieren und Methode festlegen
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
 
+            // Antwort verarbeiten, im XML Format
             val responseCode = connection.responseCode
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 Log.d(TAG, "Antwort wurde empfangen: $responseCode")
@@ -220,9 +227,11 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
                 var eventType = xmlParser.eventType
                 val shows = mutableListOf<Show>()
 
+                // Schleife die alle Tags der XML Datei durchgeht
                 while (eventType != XmlPullParser.END_DOCUMENT) {
+                    // Wenn es ein Starttag ist und Directory enthält, beginnt eine neue Serie
                     if (eventType == XmlPullParser.START_TAG && xmlParser.name == "Directory") {
-                        Log.d(TAG, "Video gefunden")
+                        Log.d(TAG, "Serie gefunden")
                         val title = xmlParser.getAttributeValue(null, "title")
                         val year = xmlParser.getAttributeValue(null, "year")?.toIntOrNull()
                         val thumb = xmlParser.getAttributeValue(null, "thumb")
@@ -234,15 +243,17 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
                             shows.add(Show(title, year, coverImageUrl))
                         }
 
-                        // Stop parsing after collecting 100 movies
+                        // Bei 100 Serien die Schleife unterbrechen
                         if (shows.size >= 100) {
                             break
                         }
                     }
+                    // Weiter parsen/suchen
                     eventType = xmlParser.next()
                 }
 
                 Log.d(TAG, "Serien: $shows")
+                // Die gefundenen Serien in die MutableLiveData pushen
                 _show.postValue(shows)
             } else {
                 Log.e(TAG, "Fehler beim Abrufen der Serien: ${responseCode}")

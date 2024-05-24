@@ -37,6 +37,7 @@ class MovieFragment: Fragment() {
         plexApiManager.movies.observe(viewLifecycleOwner) {
             val recyclerView = binding.moviesRecyclerView
             recyclerView.adapter = MovieAdapter(it)
+            binding.textTitle.text = "Verfügbare Filme"
         }
 
 

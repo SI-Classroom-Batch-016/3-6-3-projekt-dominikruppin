@@ -16,6 +16,7 @@ class TVShowFragment: Fragment() {
     private lateinit var binding: FragmentTvshowBinding
     private lateinit var plexApiManager: PlexApiManager
 
+    // Laden die Instanz des PlexAPIManagers aus der MainActivity.
     override fun onAttach(context: Context) {
         super.onAttach(context)
         mainActivity = context as MainActivity
@@ -33,10 +34,13 @@ class TVShowFragment: Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Abrufen der Serien
         plexApiManager.getShows()
+        // Sobald die Serien geladen sind (LiveData) setzen wir den Adapter
         plexApiManager.show.observe(viewLifecycleOwner) {
             val recyclerView = binding.showsRecyclerView
             recyclerView.adapter = ShowAdapter(it)
+            binding.overTitle.text = "Verfügbare Serien"
         }
 
 

@@ -1,7 +1,5 @@
 package com.plexviewer.adapter
 
-import Directory
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -9,6 +7,7 @@ import com.bumptech.glide.Glide
 import com.plexviewer.api.Movie
 import com.plexviewer.databinding.MovieItemBinding
 
+// Adapter zum setzen der Filme
 class MovieAdapter(
     private val dataset: List<Movie>
 ): RecyclerView.Adapter<MovieAdapter.MovieViewHolder>() {

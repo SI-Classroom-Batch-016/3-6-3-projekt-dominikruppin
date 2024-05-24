@@ -1,7 +1,5 @@
 package com.plexviewer.adapter
 
-import Directory
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -9,6 +7,7 @@ import com.bumptech.glide.Glide
 import com.plexviewer.api.Show
 import com.plexviewer.databinding.ShowItemBinding
 
+// Adapter zum setzen der Serien
 class ShowAdapter(
     private val dataset: List<Show>
 ): RecyclerView.Adapter<ShowAdapter.ShowViewHolder>() {
