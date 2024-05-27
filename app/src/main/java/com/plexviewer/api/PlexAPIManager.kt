@@ -265,6 +265,8 @@ class PlexApiManager private constructor(context: Context) : ViewModel() {
 
     // Funktion zum abrufen der Bibliotheken
     fun getLibraries() {
+        val plexToken = sharedPreferences.getString("plex_token", null)
+        Log.d(TAG, "Token für Librarys: $plexToken")
         if (plexToken == null) {
             Log.e(TAG, "Kein Token vorhanden")
             return
@@ -475,7 +477,4 @@ interface PlexApi {
         @Field("user[login]") username: String,
         @Field("user[password]") password: String
     ): Call<PlexUserResponse>
-
-    @GET("library/sections")
-    fun getLibraries(@Header("X-Plex-Token") token: String): Call<LibraryResponse>
 }
